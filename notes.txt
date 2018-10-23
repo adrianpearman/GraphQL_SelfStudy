@@ -1,0 +1,27 @@
+Why GraphQL?
+
+Most common websites use a standard REST setup which uses standard HTTP methods (GET, POST, DELETE etc). For every request a user makes, it can take multiple HTTP requests to grab all of the requested information. Using GraphQL we can make the same requests all with one query request.
+
+Pros of GraphQL
+1. Fast
+2. Flexible
+3. Easy to use and maintain
+
+Allows the client to decide what information to be requested from the server. In some cases, a standard REST API may supply the client with much more information than what is required, which can lead to slower performance in production. Where as with GraphQL the payload is determined by the client request, which in turn can lead to smaller data requests and faster performance of applications.
+
+---------------------------------------
+
+What is a query?
+A query is the method used for retrieving information from a GraphQL server. An example of a query:
+
+query FindInformation{
+  findInformation{
+    id
+    title 
+    description
+  }
+}
+
+What is a query?
+
+What is a query?
