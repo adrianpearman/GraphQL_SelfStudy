@@ -1,4 +1,5 @@
 import { GraphQLServer } from 'graphql-yoga' 
+import uuid from 'uuid/v4'
 
 // Five Scalar Types of GraphQL
 // String! - expects a numnber
@@ -9,7 +10,7 @@ import { GraphQLServer } from 'graphql-yoga'
 // ! - means it it's required
 
 // demo user data
-const users = [
+let users = [
   {
     id: '1',
     name: 'Adrian',
@@ -36,13 +37,12 @@ const users = [
   },
 ]
 
-const blogPosts = [
+let blogPosts = [
   {
     id: '1',
     title: 'Post #1',
     body: '',
     published: true,
-    inStores: true,
     author: '1'
   },
   {
@@ -50,7 +50,6 @@ const blogPosts = [
     title: 'Post #2',
     body: 'more information',
     published: true,
-    inStores: true,
     author: '1'
   },
   {
@@ -58,7 +57,6 @@ const blogPosts = [
     title: 'Post #3',
     body: 'information',
     published: true,
-    inStores: true,
     author: '2'
   },
   {
@@ -66,12 +64,11 @@ const blogPosts = [
     title: 'Post #4',
     body: 'all information',
     published: true,
-    inStores: true,
     author: '1'
   },
 ]
 
-const blogComments = [
+let blogComments = [
   {
     id: '1',
     text: 'Comment #1',
@@ -112,10 +109,37 @@ const typeDefs = `
     comments(query: String): [Comment]!
   }
 
-  type User {
+  type Mutation{
+    createUser(data: CreateUserInput!): User!
+    createPost(data: CreatePostInput!): Post!
+    createComment(data: CreateCommentInput!): Comment!
+    deleteUser(id: ID!): User!
+  }
+
+  input CreateUserInput{
+    name: String! 
+    email: String!
+    age: Int
+  }
+
+  input CreatePostInput{
+    title: String!
+    body: String!
+    published: Boolean!
+    author: ID!
+  }
+
+  input CreateCommentInput{
+    text: String!
+    author: ID!
+    post: ID!
+  }
+
+  type User{
     id: ID!
     name: String!
     age: Int!
+    email: String!
     employed: Boolean!
     gpa: Float
     posts: [Post!]!
@@ -135,7 +159,6 @@ const typeDefs = `
     title: String!
     body: String
     published: Boolean!
-    inStores: Boolean!
     author: User!
     comments: [Comment!]!
   }
@@ -166,82 +189,82 @@ const typeDefs = `
 
 const resolvers = {
   Query: {
-    me(){
-      return{
+    me() {
+      return {
         id: 'QWERTY12345',
         name: 'Adrian Pearman',
         age: 27,
         employed: true,
-        gpa: null
+        gpa: null,
       }
     },
-    post(){
-      return{
+    post() {
+      return {
         id: 'QWERTY12345',
         title: 'How to be a developer',
         body: 'content',
         published: 2018,
-        inStores: true
+        inStores: true,
       }
     },
-    product(){
-      return{
+    product() {
+      return {
         title: 'Cheerios',
         price: 34.54,
         releaseYear: 2009,
         rating: null,
-        inStock:  true ,
+        inStock: true,
       }
     },
-    greeting(parent, args, ctx, info){
-      if(args.name && args.position){
+    greeting(parent, args, ctx, info) {
+      if (args.name && args.position) {
         return `Hello ${args.name}, the ${args.position}`
-      } else if(args.name){
+      } else if (args.name) {
         return `Hello ${args.name}`
       } else {
         return 'Greetings '
       }
     },
-    add(parent, args, ctx, info){
-      if(args.a && args.b){
+    add(parent, args, ctx, info) {
+      if (args.a && args.b) {
         return args.a + args.b
       }
     },
-    addArray(parent, args, ctx, info){
-      if(args.numbers.length === 0){
+    addArray(parent, args, ctx, info) {
+      if (args.numbers.length === 0) {
         return 0
-      } 
-      
+      }
+
       return args.numbers.reduce((accumilator, currentValue) => {
         return accumilator + currentValue
       })
     },
-    grades(parent, args, ctz, info){
-      return [99,23,45,87,65]
+    grades(parent, args, ctz, info) {
+      return [99, 23, 45, 87, 65]
     },
-    users(parent, args, ctx, info){
-      if(!args.query){
-         return users 
+    users(parent, args, ctx, info) {
+      if (!args.query) {
+        return users
       }
 
-      return users.filter((user) => {
+      return users.filter(user => {
         return user.name.toLowerCase().includes(args.query.toLowerCase())
       })
     },
-    posts(parent, args, ctx, info){
-      if(!args.query){
+    posts(parent, args, ctx, info) {
+      if (!args.query) {
         return blogPosts
       }
 
-      return blogPosts.filter((post) => {
+      return blogPosts.filter(post => {
         const isTitleMatch = post.title.toLowerCase().includes(args.query.toLowerCase())
         const isBodyMatch = post.body.toLowerCase().includes(args.query.toLowerCase())
         return isTitleMatch || isBodyMatch
       })
     },
-    comments(parent, args, ctx, info){
+    comments(parent, args, ctx, info) {
       return blogComments
-    }
+    },
     // hello(){
     //   return 'This is my first query'
     // },
@@ -282,42 +305,147 @@ const resolvers = {
     //   return true
     // },
   },
-  Post: {
-    author(parent, args, ctx, info){
-      return users.find((user) => {
-        return user.id === parent.author
+  Mutation: {
+    createUser(parent, args, ctx, info) {
+      const id = uuid()
+      const email = args.data.email
+
+      const emailTaken = users.some(user => {
+        return user.email === email
       })
+
+      if (emailTaken) {
+        throw new Error('Email currenty in use')
+      }
+
+      const user = {
+        id,
+        ...args.data
+      }
+
+      users.push(user)
+
+      return user
     },
-    comments(parent, args, ctx, info){
-      return blogComments.filter((comment) => {
-        return comment.post === parent.id 
+    createPost(parent, args, ctx, info) {
+      const id = uuid()
+      const author = args.data.author
+
+      const userExists = users.some(user => {
+        return user.id === author
       })
+
+      if (!userExists) {
+        throw new Error('User not found')
+      }
+
+      const newPost = {
+        id,
+        ...args.data
+      }
+
+      blogPosts.push(newPost) 
+      
+      return newPost
+    },
+    createComment(parent, args, ctx, info){
+      const id = uuid()
+      const author = args.data.author
+      const post = args.data.post 
+
+      const userExists = users.some((user) => {
+        return user.id === author
+      })
+
+      const postExists = blogPosts.some((blogPost) => {
+        return blogPost.id === post && blogPost.published
+      })
+
+      if(!userExists){
+        throw new Error('User not found')
+      }
+
+      if(!postExists){
+        throw new Error('Post not found')
+      }
+
+      const newComment = {
+        id,
+        ...args.data
+      }
+
+      blogComments.push(newComment)
+
+      return newComment
+    },
+    deleteUser(parent, args, ctx, info){
+      // finding the index of the user to delete
+      const findUserIndex = users.findIndex((user) => {
+        return user.id === args.id
+      })
+
+      // Error handling for finding the user
+      if(findUserIndex === -1 ){
+        throw new Error('User not found')
+      }
+
+      // the deleted user
+      const deletedUser = users.splice(findUserIndex, 1)
+
+      blogPosts = blogPosts.filter((post) => {
+        const match = post.author === args.id 
+
+        if (match){
+          blogComments.filter((comment) => {
+            return comment.post !== post.id
+          })
+        }
+
+        return !match
+      })
+      blogComments = blogComments.filter((comment) => {
+        comment.autho === args.id
+      })
+
+      return deletedUser[0]
     }
   },
-  Comment:{
-    author(parent, args, ctx, info){
-      return users.find((user) => {
+  Post: {
+    author(parent, args, ctx, info) {
+      return users.find(user => {
         return user.id === parent.author
       })
     },
-    post(parent, args, ctx, info){
-      return blogPosts.find((post) => {
+    comments(parent, args, ctx, info) {
+      return blogComments.filter(comment => {
+        return comment.post === parent.id
+      })
+    },
+  },
+  Comment: {
+    author(parent, args, ctx, info) {
+      return users.find(user => {
+        return user.id === parent.author
+      })
+    },
+    post(parent, args, ctx, info) {
+      return blogPosts.find(post => {
         return post.id === parent.id
       })
-    }
+    },
   },
   User: {
-    posts(parent, args, ctx, info){
-      return blogPosts.filter((post) => {
+    posts(parent, args, ctx, info) {
+      return blogPosts.filter(post => {
         return post.author === parent.id
       })
     },
-    comments(parent, args, ctx, info){
-      return blogComments.filter((comment) => {
+    comments(parent, args, ctx, info) {
+      return blogComments.filter(comment => {
         return comment.author === parent.id
       })
-    }
-  }
+    },
+  },
 }
 
 const server = new GraphQLServer({
